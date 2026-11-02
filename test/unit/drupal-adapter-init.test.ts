@@ -2,11 +2,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import {
   createAdapterInitHarness,
   GRAPHQL_DELAY_MS,
-} from '../../../../../test/support/drupalAdapterInit'
+} from '../support/drupalAdapterInit'
 
 vi.mock('vue', async (importOriginal) => {
-  const { graphqlMocks } =
-    await import('../../../../../test/support/drupalAdapterInit')
+  const { graphqlMocks } = await import('../support/drupalAdapterInit')
   return { ...(await importOriginal<typeof import('vue')>()), ...graphqlMocks }
 })
 // Generated at build time and importing the feature components.
@@ -46,7 +45,7 @@ describe('Drupal adapter init', () => {
     await vi.advanceTimersByTimeAsync(GRAPHQL_DELAY_MS * 2)
     const adapter = await init
 
-    expect(adapter.buildAnchorLink?.('abc')).toBe('/node/1#abc')
+    expect(adapter.buildAnchorLink?.('abc', 'uuid')).toBe('/node/1#abc')
     await expect(adapter.getAllBundles?.()).resolves.toHaveLength(1)
   })
 })
