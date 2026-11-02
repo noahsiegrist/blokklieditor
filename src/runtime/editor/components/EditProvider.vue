@@ -109,7 +109,7 @@ import editStateProvider from '#blokkli/editor/providers/state'
 import typesProvider from '#blokkli/editor/providers/types'
 import elementProvider from '#blokkli/editor/providers/element'
 import domProvider from '#blokkli/editor/providers/dom'
-import textProvider from '#blokkli/editor/providers/texts'
+import { startTextProvider } from '#blokkli/editor/providers/texts'
 import storageProvider from '#blokkli/editor/providers/storage'
 import uiProvider from '#blokkli/editor/providers/ui'
 import broadcastProvider from '#blokkli/editor/providers/broadcast'
@@ -220,15 +220,20 @@ const toolbarLoaded = ref(false)
 const featuresLoaded = ref(false)
 const isInitializing = ref(true)
 
-const $t = await textProvider(context.value.language)
-const state = await editStateProvider(
-  eventBus,
-  adapter,
-  context,
-  $t,
-  providerKey,
-  props.permissions.filter(falsy),
-)
+// The state only needs $t for its error messages, so the translation chunk
+// loads in parallel with `adapter.loadState()`.
+const { $t, ready: textsReady } = startTextProvider(context.value.language)
+const [state] = await Promise.all([
+  editStateProvider(
+    eventBus,
+    adapter,
+    context,
+    $t,
+    providerKey,
+    props.permissions.filter(falsy),
+  ),
+  textsReady,
+])
 const storage = await storageProvider(adapter, context)
 const plugins = pluginProvider()
 const debug = debugProvider(eventBus, storage)
