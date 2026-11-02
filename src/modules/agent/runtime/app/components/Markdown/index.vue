@@ -4,14 +4,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from '#imports'
-import { renderMarkdown } from '#blokkli/agent/app/helpers/markdown'
+import { useMarkdownHtml } from './useMarkdownHtml'
 
 const props = defineProps<{
   content: string
 }>()
 
-const html = computed(() =>
-  props.content ? renderMarkdown(props.content) : '',
-)
+const html = useMarkdownHtml(() => props.content)
 </script>
