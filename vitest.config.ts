@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { defineConfig } from 'vitest/config'
 import { defineVitestProject } from '@nuxt/test-utils/config'
+import vue from '@vitejs/plugin-vue'
 
 // GitHub's runners have 4 cores for the tests, Drupal, nginx, Nuxt and the
 // browsers: a test takes several times as long there.
@@ -20,6 +21,8 @@ export default defineConfig({
             },
           },
         },
+        // Mounts single-file components (test/unit/edit-indicator-raf.test.ts).
+        plugins: [vue()],
         resolve: {
           alias: {
             // Runtime code imports Vue composables via Nuxt's auto-import
