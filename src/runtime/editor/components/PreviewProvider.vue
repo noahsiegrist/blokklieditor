@@ -170,33 +170,72 @@ const onMouseDown = () => {
   broadcast.emit('previewFocused')
 }
 
+// A preview whose adapter can't tell when the state changed reloads it every
+// 5 s instead.
+const POLL_DELAYS = [1000, 2000, 5000]
+const FALLBACK_POLL_DELAY = 5000
+const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'wheel']
+
+let pollStep = 0
+
+function getPollDelay() {
+  if (!adapter.getLastChanged) {
+    return FALLBACK_POLL_DELAY
+  }
+  return POLL_DELAYS[Math.min(pollStep, POLL_DELAYS.length - 1)]!
+}
+
 /**
- * Check the last changed date and update the mutated state if there is an
- * update.
+ * Schedule the next check of the last changed date.
+ *
+ * Nothing is scheduled while the tab is hidden: onVisibilityChange resumes.
  */
-function checkChangedDate() {
+function scheduleCheck(delay = getPollDelay()) {
+  clearTimeout(timeout)
+
   // State loading has failed, so we can return here; no need to poll.
-  if (!isPreview.value) {
+  if (!isPreview.value || document.hidden) {
     return
   }
 
-  clearTimeout(timeout)
+  timeout = setTimeout(checkChangedDate, delay)
+}
 
-  const delay = adapter.getLastChanged ? 1000 : 5000
-
-  timeout = setTimeout(async () => {
-    const changed = adapter.getLastChanged
-      ? await adapter.getLastChanged()
-      : new Date().toISOString()
-    if (changed) {
-      if (lastChanged !== null && lastChanged !== changed) {
-        await refresh()
-        updateState()
-      }
-      lastChanged = changed
-      checkChangedDate()
+/**
+ * Check the last changed date and update the mutated state if there is an
+ * update. Poll less often for as long as nothing changes.
+ */
+async function checkChangedDate() {
+  const changed = adapter.getLastChanged
+    ? await adapter.getLastChanged()
+    : new Date().toISOString()
+  if (changed) {
+    if (lastChanged !== null && lastChanged !== changed) {
+      pollStep = 0
+      await refresh()
+      updateState()
+    } else {
+      pollStep++
     }
-  }, delay)
+    lastChanged = changed
+    scheduleCheck()
+  }
+}
+
+function onVisibilityChange() {
+  if (document.hidden) {
+    clearTimeout(timeout)
+  } else {
+    pollStep = 0
+    scheduleCheck(0)
+  }
+}
+
+function onActivity() {
+  if (pollStep > 0) {
+    pollStep = 0
+    scheduleCheck()
+  }
 }
 
 const onWheel = (e: WheelEvent) => {
@@ -257,13 +296,21 @@ onMounted(() => {
     router.replace = () => Promise.resolve()
   } else {
     // We are a standalone page in preview mode. Setup polling for changes.
-    checkChangedDate()
+    scheduleCheck()
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    ACTIVITY_EVENTS.forEach((name) => {
+      document.addEventListener(name, onActivity, { passive: true })
+    })
   }
   emit('ready')
 })
 
 onBeforeUnmount(() => {
   clearTimeout(timeout)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  ACTIVITY_EVENTS.forEach((name) => {
+    document.removeEventListener(name, onActivity)
+  })
   window.removeEventListener('wheel', onWheel)
   window.removeEventListener('message', onMessage)
   document.documentElement.removeEventListener('mousedown', onMouseDown)
