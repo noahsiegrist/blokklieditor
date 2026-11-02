@@ -1,4 +1,4 @@
-import type { BufferInfo } from 'twgl.js'
+import type { Arrays, BufferInfo } from 'twgl.js'
 import type { TwglHelpers } from '#blokkli/editor/libraries/twgl'
 import { intersects } from './../geometry'
 import type { Rectangle } from '#blokkli/editor/types/geometry'
@@ -451,16 +451,17 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
 
   createBufferInfo(gl: WebGLRenderingContext, twgl: TwglHelpers): BufferInfo {
     this.deleteGlBuffers()
-    const info = this.buildBufferInfo(gl, twgl)
+    const info = twgl.createBufferInfoFromArrays(gl, this.bufferArrays(gl))
     this.glBuffers = { gl, info }
     return info
   }
 
-  private buildBufferInfo(
-    gl: WebGLRenderingContext,
-    twgl: TwglHelpers,
-  ): BufferInfo {
-    return twgl.createBufferInfoFromArrays(gl, {
+  /**
+   * The vertex attributes uploaded by createBufferInfo(). Subclasses add their
+   * own attributes here, so their buffers are freed like the base ones.
+   */
+  bufferArrays(gl: WebGLRenderingContext): Arrays {
+    return {
       a_position: {
         numComponents: 3,
         data: this.positions,
@@ -492,6 +493,6 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
         type: gl.FLOAT,
       },
       indices: this.indices,
-    })
+    }
   }
 }

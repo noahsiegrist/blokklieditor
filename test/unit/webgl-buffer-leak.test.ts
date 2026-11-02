@@ -22,6 +22,32 @@ describe('RectangleBufferCollector GL buffers', () => {
     expect(live.size).toBe(liveAfterFirst)
   })
 
+  test('a subclass with extra attributes still frees all its buffers', () => {
+    class ColoredCollector extends RectangleBufferCollector<any> {
+      override bufferArrays(gl: WebGLRenderingContext) {
+        return {
+          ...super.bufferArrays(gl),
+          a_color: { numComponents: 3, data: [0, 0, 0], type: gl.FLOAT },
+        }
+      }
+    }
+    const { gl, live } = createMockGl()
+    const collector = new ColoredCollector()
+
+    fillCollector(collector, 10)
+    collector.bufferInfo = collector.createBufferInfo(gl, twgl)
+    expect(collector.bufferInfo.attribs?.a_color).toBeDefined()
+    const liveAfterFirst = live.size
+
+    collector.reset()
+    fillCollector(collector, 10)
+    collector.bufferInfo = collector.createBufferInfo(gl, twgl)
+    expect(live.size).toBe(liveAfterFirst)
+
+    collector.reset()
+    expect(live.size).toBe(0)
+  })
+
   test('reset frees the buffers of an info that is dropped', () => {
     const { gl, live } = createMockGl()
     const collector = new RectangleBufferCollector<any>()

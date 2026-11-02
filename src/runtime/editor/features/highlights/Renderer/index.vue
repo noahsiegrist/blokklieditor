@@ -170,41 +170,9 @@ class HighlightsRectangleBufferCollector extends RectangleBufferCollector<Highli
     }
   }
 
-  override createBufferInfo(
-    gl: WebGLRenderingContext,
-    twgl: TwglHelpers,
-  ): BufferInfo {
-    return twgl.createBufferInfoFromArrays(gl, {
-      a_position: {
-        numComponents: 3,
-        data: this.positions,
-        type: gl.FLOAT,
-      },
-      a_rect_id: {
-        numComponents: 1,
-        data: this.rectId,
-        type: gl.FLOAT,
-      },
-      a_state: {
-        numComponents: 1,
-        data: this.state,
-        type: gl.FLOAT,
-      },
-      a_rect_type: {
-        numComponents: 1,
-        data: this.types,
-        type: gl.FLOAT,
-      },
-      a_rect_radius: {
-        numComponents: 4,
-        data: this.radius,
-        type: gl.FLOAT,
-      },
-      a_quad: {
-        numComponents: 4,
-        data: this.quad,
-        type: gl.FLOAT,
-      },
+  override bufferArrays(gl: WebGLRenderingContext) {
+    return {
+      ...super.bufferArrays(gl),
       a_color1: {
         numComponents: 3,
         data: this.color1Data,
@@ -220,8 +188,7 @@ class HighlightsRectangleBufferCollector extends RectangleBufferCollector<Highli
         data: this.activeData,
         type: gl.FLOAT,
       },
-      indices: this.indices,
-    })
+    }
   }
 
   getBufferInfo(
