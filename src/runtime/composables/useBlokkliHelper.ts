@@ -20,7 +20,7 @@ import {
   isVisibleByOptions,
 } from '#blokkli/helpers/runtimeHelpers'
 import type { MutatedField } from '#blokkli/editor/types/state'
-import type { fromLibraryBlockBundle } from '#blokkli-build/config'
+import { fromLibraryBlockBundle } from '#blokkli-build/config'
 
 type BundleWithoutLibrary = Exclude<
   FieldListItemTyped['bundle'],
@@ -89,13 +89,18 @@ function walkBlocks(
       continue
     }
 
-    // This handles 'from_library' blocks and returns the reusable block with
-    // its options merged.
-    const mutatedOptionsForBlock = mutatedOptions[item.uuid] ?? {}
-    const mappedItem = getActualBlock({
-      ...item,
-      options: { ...(item.options || {}), ...mutatedOptionsForBlock },
-    })
+    // Only blocks with mutated options and 'from_library' blocks (resolved to
+    // the reusable block with its options merged) need a merged copy. Every
+    // other block is handed out as is: visitor pages never have mutated
+    // options, so no block gets copied there.
+    const mutatedOptionsForBlock = mutatedOptions[item.uuid]
+    const mappedItem =
+      mutatedOptionsForBlock || item.bundle === fromLibraryBlockBundle
+        ? getActualBlock({
+            ...item,
+            options: { ...(item.options || {}), ...mutatedOptionsForBlock },
+          })
+        : item
     if (!mappedItem) continue
 
     const callbackResult = callback(mappedItem)
