@@ -70,18 +70,18 @@ describe('setContext', () => {
     state.setOverrideState(changed)
 
     expect(state.getMutatedField('host', 'field_0')).not.toBe(field)
-    expect(
-      state.getMutatedField('host', 'field_0')?.list[2]?.props,
-    ).toEqual({ title: 'Changed' })
+    expect(state.getMutatedField('host', 'field_0')?.list[2]?.props).toEqual({
+      title: 'Changed',
+    })
     expect(state.mutatedOptions['block-0-1']).not.toBe(options)
     expect(state.mutatedOptions['block-0-1']?.option0).toBe('changed')
 
     // Back to the original: it is a change again, not a stale cache hit.
     state.setOverrideState(clone(initial))
     expect(state.mutatedOptions['block-0-1']?.option0).toBe('value 0')
-    expect(
-      state.getMutatedField('host', 'field_0')?.list[2]?.props,
-    ).toEqual(initial.mutatedState!.fields![0]!.list[2]!.props)
+    expect(state.getMutatedField('host', 'field_0')?.list[2]?.props).toEqual(
+      initial.mutatedState!.fields![0]!.list[2]!.props,
+    )
   })
 
   it('drops a removed field and brings it back', async () => {
