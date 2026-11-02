@@ -8,7 +8,6 @@
 
 <script setup lang="ts">
 import { useHead } from '#imports'
-import '#blokkli-build/styles.css'
 
 useHead({
   titleTemplate: (titleChunk) => {
