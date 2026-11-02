@@ -99,6 +99,23 @@ const repliesByRoot = computed(() => {
 
 const indicators = ref<Indicator[]>([])
 
+function isSameList<T>(a: T[], b: T[]) {
+  return a.length === b.length && a.every((item, i) => item === b[i])
+}
+
+function isSameIndicators(a: Indicator[], b: Indicator[]) {
+  return (
+    a.length === b.length &&
+    a.every(
+      (indicator, i) =>
+        indicator.id === b[i]!.id &&
+        indicator.style.transform === b[i]!.style.transform &&
+        isSameList(indicator.roots, b[i]!.roots) &&
+        isSameList(indicator.replies, b[i]!.replies),
+    )
+  )
+}
+
 onBlokkliEvent('canvas:draw', (e) => {
   const scale = e.artboardScale
   const offset = e.artboardOffset
@@ -183,6 +200,10 @@ onBlokkliEvent('canvas:draw', (e) => {
       }
     }
   }
-  indicators.value = Object.values(newIndicators)
+  const next = Object.values(newIndicators)
+  // The canvas draws every frame, but the indicators rarely move.
+  if (!isSameIndicators(indicators.value, next)) {
+    indicators.value = next
+  }
 })
 </script>
