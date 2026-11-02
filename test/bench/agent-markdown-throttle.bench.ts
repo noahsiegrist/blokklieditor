@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { bench, describe, vi } from 'vitest'
 import { computed, effectScope, nextTick, ref, watchEffect } from 'vue'
+import { renderMarkdown } from '../../src/modules/agent/runtime/app/helpers/markdown'
 
 const counter = vi.hoisted(() => ({ calls: 0 }))
 
@@ -21,8 +22,6 @@ vi.mock(
   },
 )
 
-import { renderMarkdown } from '../../src/modules/agent/runtime/app/helpers/markdown'
-
 // Markdown/index.vue delegates to useMarkdownHtml(). Before the fix that file
 // does not exist and the component renders in a computed(): one
 // renderMarkdown() per content change.
@@ -37,9 +36,10 @@ const loadComposable = Object.values(composables)[0] as
 
 const PARAGRAPH =
   'Here is **a paragraph** with `inline code`, a [link](https://example.com) and some plain text to make the parser work.\n\n- item one\n- item two\n\n'
-const ANSWER = PARAGRAPH.repeat(
-  Math.ceil(4000 / PARAGRAPH.length),
-).slice(0, 4000)
+const ANSWER = PARAGRAPH.repeat(Math.ceil(4000 / PARAGRAPH.length)).slice(
+  0,
+  4000,
+)
 const DELTA_SIZE = 20
 const DELTA_INTERVAL_MS = 30
 const DELTAS: string[] = []
@@ -96,13 +96,21 @@ if (loadComposable) {
 const BENCH_OPTIONS = { iterations: 5, warmupIterations: 1, time: 0 }
 
 describe('agent markdown streaming, 4000 chars in 20-char deltas', () => {
-  bench('render per delta', async () => {
-    await stream(renderPerDelta)
-  }, BENCH_OPTIONS)
+  bench(
+    'render per delta',
+    async () => {
+      await stream(renderPerDelta)
+    },
+    BENCH_OPTIONS,
+  )
 
-  bench('useMarkdownHtml', async () => {
-    if (!loadComposable) return
-    const { useMarkdownHtml } = await loadComposable()
-    await stream(useMarkdownHtml)
-  }, BENCH_OPTIONS)
+  bench(
+    'useMarkdownHtml',
+    async () => {
+      if (!loadComposable) return
+      const { useMarkdownHtml } = await loadComposable()
+      await stream(useMarkdownHtml)
+    },
+    BENCH_OPTIONS,
+  )
 })
