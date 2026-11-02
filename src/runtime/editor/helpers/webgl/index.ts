@@ -39,12 +39,15 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
   placedRects: PlacedRectangle[] = []
   deferredMode: boolean = false
   pendingRects: PendingRect<T>[] = []
+  private glBuffers: { gl: WebGLRenderingContext; info: BufferInfo } | null =
+    null
 
   constructor(options?: RectangleBufferCollectorOptions) {
     this.deferredMode = options?.deferredMode || false
   }
 
   reset() {
+    this.deleteGlBuffers()
     this.added = new Set()
     // In deferred mode, only preserve rects for position stability
     // placedRects must be rebuilt each frame for accurate collision detection
@@ -428,7 +431,35 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
     // buffer.
   }
 
+  /**
+   * Free the GPU buffers of the last created buffer info. WebGL never
+   * garbage collects them while the context is alive.
+   */
+  private deleteGlBuffers() {
+    if (!this.glBuffers) {
+      return
+    }
+    const { gl, info } = this.glBuffers
+    for (const attrib of Object.values(info.attribs || {})) {
+      gl.deleteBuffer(attrib.buffer)
+    }
+    if (info.indices) {
+      gl.deleteBuffer(info.indices)
+    }
+    this.glBuffers = null
+  }
+
   createBufferInfo(gl: WebGLRenderingContext, twgl: TwglHelpers): BufferInfo {
+    this.deleteGlBuffers()
+    const info = this.buildBufferInfo(gl, twgl)
+    this.glBuffers = { gl, info }
+    return info
+  }
+
+  private buildBufferInfo(
+    gl: WebGLRenderingContext,
+    twgl: TwglHelpers,
+  ): BufferInfo {
     return twgl.createBufferInfoFromArrays(gl, {
       a_position: {
         numComponents: 3,
