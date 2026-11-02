@@ -22,6 +22,7 @@ import {
   useState,
   computed,
   useTemplateRef,
+  watch,
 } from '#imports'
 import type { EditPermission } from '#blokkli/types/provider'
 
@@ -29,6 +30,8 @@ type IndicatorData = {
   key: string
   targetElement: HTMLElement
   buttonElement: HTMLButtonElement
+  overlayElement: HTMLElement | null
+  isHovering: () => boolean
 }
 
 /**
@@ -159,68 +162,86 @@ const indicators = computed(() => {
   })
 })
 
-function updateAllIndicatorPositions() {
-  const positions: number[] = []
-  const heights: number[] = []
+function setStyle(
+  element: HTMLElement,
+  property: 'transform' | 'width' | 'height',
+  value: string,
+) {
+  // Rewriting an unchanged value would still invalidate style.
+  if (element.style[property] !== value) {
+    element.style[property] = value
+  }
+}
 
-  for (let i = 0; i < indicators.value.length; i++) {
-    const data = indicators.value[i]!
-    const rect = data.targetElement.getBoundingClientRect()
-    const buttonHeight = data.buttonElement.offsetHeight
+function updateAllIndicators() {
+  const list = indicators.value
 
-    let idealY = calculateIdealYPosition(buttonHeight, rect, GAP)
+  // Read phase: every layout read happens before the first style write, so the
+  // browser lays out at most once per frame instead of once per indicator.
+  const rects = list.map((data) => data.targetElement.getBoundingClientRect())
+  const buttonHeights = list.map((data) => data.buttonElement.offsetHeight)
 
-    // Collision detection to prevent overlapping indicator buttons.
-    for (let j = 0; j < i; j++) {
-      const prevRect =
-        indicators.value[j]!.targetElement.getBoundingClientRect()
-      const prevElementTop = prevRect.top
-      const prevElementHeight = prevRect.height
-      const collisionPosition = prevElementTop + prevElementHeight + GAP
+  // Write phase.
+  // Collisions only depend on the lowest bottom edge of the previous elements.
+  let collisionPosition = -Infinity
 
-      // If this button would overlap, push it down.
-      if (idealY < collisionPosition) {
-        idealY = collisionPosition
-      }
+  for (let i = 0; i < list.length; i++) {
+    const data = list[i]!
+    const rect = rects[i]!
+    const buttonHeight = buttonHeights[i]!
+
+    // Pushed down if this button would overlap a previous indicator button.
+    let idealY = Math.max(
+      calculateIdealYPosition(buttonHeight, rect, GAP),
+      collisionPosition,
+    )
+    collisionPosition = Math.max(
+      collisionPosition,
+      rect.top + rect.height + GAP,
+    )
+
+    idealY = Math.min(idealY, rect.bottom - buttonHeight - GAP)
+
+    setStyle(
+      data.buttonElement,
+      'transform',
+      `translateY(${Math.round(idealY)}px)`,
+    )
+
+    if (data.overlayElement && data.isHovering()) {
+      setStyle(data.overlayElement, 'width', rect.width + 'px')
+      setStyle(data.overlayElement, 'height', rect.height + 'px')
+      setStyle(
+        data.overlayElement,
+        'transform',
+        `translate(${rect.x}px, ${rect.y}px)`,
+      )
     }
-
-    const elementBottom = rect.bottom - buttonHeight - GAP
-    if (elementBottom < idealY) {
-      idealY = elementBottom
-    }
-
-    idealY = Math.round(idealY)
-
-    positions.push(idealY)
-    heights.push(buttonHeight)
-    data.buttonElement.style.transform = `translateY(${idealY}px)`
   }
 }
 
 function loop() {
   raf = window.requestAnimationFrame(loop)
+  updateAllIndicators()
+}
 
-  if (!button.value || !targetElement.value) {
-    return
-  }
-
-  // The first indicator is the "manager" and is responsible for updating all
-  // indicator positions.
-  if (isManager.value) {
-    updateAllIndicatorPositions()
-  }
-
-  // Each component handles its own overlay
-  if (isHovering.value && overlay.value) {
-    const rect = targetElement.value.getBoundingClientRect()
-    overlay.value.style.width = rect.width + 'px'
-    overlay.value.style.height = rect.height + 'px'
-    overlay.value.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+function stopLoop() {
+  if (raf) {
+    window.cancelAnimationFrame(raf)
+    raf = null
   }
 }
 
+// The manager updates every indicator, so only it needs a frame loop.
+watch(isManager, (value) => {
+  stopLoop()
+
+  if (value) {
+    loop()
+  }
+})
+
 onMounted(() => {
-  loop()
   const el = document.querySelector(`[data-provider-uuid="${props.uuid}"]`)
   if (el && el instanceof HTMLElement) {
     targetElement.value = el
@@ -232,6 +253,8 @@ onMounted(() => {
       key: key.value,
       targetElement: targetElement.value,
       buttonElement: button.value,
+      overlayElement: overlay.value,
+      isHovering: () => isHovering.value,
     })
   }
 })
@@ -241,10 +264,7 @@ onBeforeUnmount(() => {
     (i) => i.key !== key.value,
   )
 
-  if (raf) {
-    window.cancelAnimationFrame(raf)
-    raf = null
-  }
+  stopLoop()
 })
 </script>
 

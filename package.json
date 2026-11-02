@@ -193,6 +193,7 @@
     "@types/node": "^25.9.3",
     "@types/papaparse": "^5.5.2",
     "@types/turndown": "^5.0.6",
+    "@vitejs/plugin-vue": "^6.0.7",
     "@vue/test-utils": "^2.4.11",
     "axe-core": "^4.12.1",
     "changelogen": "^0.6.2",
