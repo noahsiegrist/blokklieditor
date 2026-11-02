@@ -31,15 +31,21 @@
         v-if="typeComponent && finalRenderProps"
         v-bind="finalRenderProps"
       />
-      <ol v-if="resolvedFootnotes.length" class="bk-chart-footnotes">
-        <li v-for="(note, i) in resolvedFootnotes" :key="i">
-          <span class="bk-chart-footnote-marker">{{
-            superscriptFor(i + 1)
-          }}</span>
-          {{ note }}
-        </li>
-      </ol>
+      <template #fallback>
+        <div
+          v-if="typeComponent && finalRenderProps"
+          :style="{ height: CHART_HEIGHT }"
+        />
+      </template>
     </ClientOnly>
+    <ol v-if="resolvedFootnotes.length" class="bk-chart-footnotes">
+      <li v-for="(note, i) in resolvedFootnotes" :key="i">
+        <span class="bk-chart-footnote-marker">{{
+          superscriptFor(i + 1)
+        }}</span>
+        {{ note }}
+      </li>
+    </ol>
   </div>
 </template>
 
@@ -52,7 +58,7 @@ import type {
   ChartSeries,
   ChartTypeRenderProps,
 } from '../../types'
-import { applyFootnotes, SUPERSCRIPTS } from '../../helpers'
+import { applyFootnotes, CHART_HEIGHT, SUPERSCRIPTS } from '../../helpers'
 import { applyDataSourceOverrides } from '../../helpers/dataSource'
 import { detectDateFormat, formatDateCategory } from '../../helpers/dateFormat'
 import { INJECT_CHART_PREVIEW_DYNAMIC_DATA } from '../../helpers/previewInjection'
@@ -222,9 +228,6 @@ const resolvedNumberFormat = computed(() => {
 })
 
 function superscriptFor(n: number): string {
-  if (import.meta.server) {
-    return ''
-  }
   return String(n)
     .split('')
     .map((d) => SUPERSCRIPTS[d] || d)

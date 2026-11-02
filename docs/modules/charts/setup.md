@@ -187,6 +187,10 @@ classes to style them:
 | `bk-chart-footnotes`       | The footnotes' `<ol>`, below the chart    |
 | `bk-chart-footnote-marker` | Each footnote's number (¹, ², …)          |
 
+The footnotes are part of the server-rendered HTML. The chart itself renders in
+the browser only, so until it mounts an empty element of the chart height stands
+in for it and the footnotes do not move.
+
 The category filter's markup is yours through the `categoryFilter` slot, which
 receives `label`, `categories`, `selectedIndex` and `setSelectedIndex`.
 

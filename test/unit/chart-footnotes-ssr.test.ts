@@ -26,7 +26,7 @@ describe('ChartRenderer server render', () => {
 
   test('reserves the chart height until the chart is mounted', async () => {
     const html = await renderChartToString(chartData(NOTES))
-    expect(html).toContain('height: var(--bk-chart-height, 550px)')
+    expect(html).toMatch(/height:\s*var\(--bk-chart-height, 550px\)/)
   })
 
   test('renders no footnote list without footnotes', async () => {

@@ -2,13 +2,14 @@
   <VChart
     :option="option"
     autoresize
-    style="width: 100%; height: var(--bk-chart-height, 550px)"
+    :style="{ width: '100%', height: CHART_HEIGHT }"
   />
 </template>
 
 <script setup lang="ts">
 import VChart from 'vue-echarts'
 import type { EChartsOption } from 'echarts'
+import { CHART_HEIGHT } from '../../helpers'
 
 /**
  * The single `<VChart>` host shared by every built-in chart type. Owns the
