@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { bench, describe, vi } from 'vitest'
-import { createHarness, type LayoutCounts } from './support/editIndicatorHarness'
+import {
+  createHarness,
+  type LayoutCounts,
+} from './support/editIndicatorHarness'
 
 vi.mock('#imports', async () => {
   const actual = await vi.importActual<typeof import('vue')>('vue')
@@ -20,7 +23,9 @@ const SCENARIOS: Scenario[] = [
 ]
 
 async function run({ n, hover, scroll }: Scenario) {
-  const h = createHarness(Array.from({ length: n }, (_, i) => 40 + (i % 3) * 80))
+  const h = createHarness(
+    Array.from({ length: n }, (_, i) => 40 + (i % 3) * 80),
+  )
   await Promise.resolve()
   h.frame()
   if (hover) {

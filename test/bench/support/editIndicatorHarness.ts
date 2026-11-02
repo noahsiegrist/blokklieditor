@@ -93,7 +93,11 @@ export function createHarness(heights: number[], { gap = 20 } = {}) {
   })
   originals.push(() => {
     if (originalHeight) {
-      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', originalHeight)
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetHeight',
+        originalHeight,
+      )
     }
   })
 
