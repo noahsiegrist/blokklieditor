@@ -706,6 +706,22 @@ function injectAttribute(openTag: string, name: string, value: string): string {
   return openTag.slice(0, -1) + ` ${name}="${value}">`
 }
 
+/**
+ * The word diff of a matched segment depends only on the segment itself, not
+ * on which segments are accepted, so toggling one chunk must not re-diff the
+ * others. Segments are never mutated after `splitIntoSegments`.
+ */
+const innerDiffCache = new WeakMap<AtomicSegment, string>()
+
+function innerDiffMarkup(seg: AtomicSegment): string {
+  let markup = innerDiffCache.get(seg)
+  if (markup === undefined) {
+    markup = cleanupDiffMods(diff(seg.beforeHtml, seg.afterHtml))
+    innerDiffCache.set(seg, markup)
+  }
+  return markup
+}
+
 function renderAtomicDiffMarkup(
   seg: AtomicSegment,
   opts: {
@@ -750,8 +766,7 @@ function renderAtomicDiffMarkup(
   if (seg.beforeHtml === seg.afterHtml) {
     return `${open}${seg.afterHtml}${seg.closeTag}`
   }
-  const innerDiff = diff(seg.beforeHtml, seg.afterHtml)
-  return `${open}${cleanupDiffMods(innerDiff)}${seg.closeTag}`
+  return `${open}${innerDiffMarkup(seg)}${seg.closeTag}`
 }
 
 /**
