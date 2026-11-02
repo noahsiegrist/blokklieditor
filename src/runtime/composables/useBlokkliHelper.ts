@@ -4,14 +4,7 @@ import {
   INJECT_PROVIDER_BLOCKS,
   INJECT_PROVIDER_CONTEXT,
 } from '#blokkli/helpers/injections'
-import {
-  inject,
-  type ComputedRef,
-  computed,
-  watch,
-  ref,
-  toValue,
-} from '#imports'
+import { inject, type ComputedRef, computed, toValue } from '#imports'
 import type { MaybeRefOrGetter } from 'vue'
 import { FIELD_MAPPING } from '#blokkli-build/runtime-options'
 import type { FieldListItemTyped } from '#blokkli-build/generated-types'
@@ -149,21 +142,8 @@ export function useBlokkliHelper(): UseBlokkliHelper {
   const rootBlocks = inject(INJECT_PROVIDER_BLOCKS, null)
   const providerEntity = inject(INJECT_PROVIDER_CONTEXT, null)
 
-  const editContext = inject(INJECT_EDIT_CONTEXT, null)
-  const mutatedOptions = ref<Record<string, any>>({})
-
+  const mutatedOptions = inject(INJECT_EDIT_CONTEXT, null)?.mutatedOptions ?? {}
   const mutatedFields = inject(INJECT_MUTATED_FIELDS_MAP, null)
-
-  // @todo: This is a dirty workaround during editing. The mutatedOptions
-  // from editContext are not reactive when used in a computed property.
-  // Because of that, we need to what the entire object and assign it to a
-  // ref here.
-  // We need a better solution here, because this is rather inefficient.
-  if (editContext?.mutatedOptions) {
-    watch(editContext.mutatedOptions, (options) => {
-      mutatedOptions.value = options
-    })
-  }
 
   function queryBlocks(
     bundlesOrCallback: BundlesOrCallback<any>,
@@ -200,7 +180,7 @@ export function useBlokkliHelper(): UseBlokkliHelper {
       walkBlocks(
         matches,
         callback,
-        mutatedOptions.value,
+        mutatedOptions,
         providerEntity?.value.language,
         mutatedFields,
         list,
