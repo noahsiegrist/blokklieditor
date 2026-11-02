@@ -290,7 +290,8 @@ export default defineBlokkliEditAdapter<ParagraphsBlokkliEditStateFragment>(
       }
     })
 
-    const config = await useGraphqlQuery('pbConfig', {
+    // Both only depend on the provided context: one round trip, not two.
+    const configQuery = useGraphqlQuery('pbConfig', {
       entityType: providedContext.value.entityType,
       entityBundle: providedContext.value.entityBundle,
     }).then((v) => {
@@ -327,6 +328,20 @@ export default defineBlokkliEditAdapter<ParagraphsBlokkliEditStateFragment>(
       }
     })
 
+    const entityConfigQuery = useGraphqlQuery('pbEntityConfig', {
+      entityType: providedContext.value.entityType,
+      entityUuid: providedContext.value.entityUuid,
+    }).then((v) => {
+      return {
+        linkPath: v.data.config?.linkPath ?? '',
+      }
+    })
+
+    const [config, entityConfig] = await Promise.all([
+      configQuery,
+      entityConfigQuery,
+    ])
+
     const entityTypeConfigMap = new Map()
 
     config.entityTypeConfig.forEach((entityType) => {
@@ -334,15 +349,6 @@ export default defineBlokkliEditAdapter<ParagraphsBlokkliEditStateFragment>(
       entityType.bundles.forEach((bundle) => {
         entityTypeConfigMap.set(`${entityType.id}:${bundle.id}`, bundle.label)
       })
-    })
-
-    const entityConfig = await useGraphqlQuery('pbEntityConfig', {
-      entityType: providedContext.value.entityType,
-      entityUuid: providedContext.value.entityUuid,
-    }).then((v) => {
-      return {
-        linkPath: v.data.config?.linkPath ?? '',
-      }
     })
 
     const loadState: DrupalAdapter['loadState'] = async () => {
