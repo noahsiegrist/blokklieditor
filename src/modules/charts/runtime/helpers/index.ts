@@ -3,6 +3,12 @@ import type { ColorOption } from '#blokkli/types/colors'
 import { canonicalColorId } from '#blokkli/helpers/colors'
 import { detectDateFormat } from './dateFormat'
 
+/**
+ * The height of a chart. The placeholder shown until the chart mounts uses the
+ * same value, so the content below does not move when the chart appears.
+ */
+export const CHART_HEIGHT = 'var(--bk-chart-height, 550px)'
+
 export const SUPERSCRIPTS: Record<string, string> = {
   '1': '¹',
   '2': '²',
