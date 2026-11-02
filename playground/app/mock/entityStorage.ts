@@ -12,6 +12,7 @@ import videosData from './../../snapshots/videos.json'
 import type { FieldBlocks } from './state/Field/Blocks'
 // import { icons } from '#blokkli-build/icons'
 import { generateUUID } from './uuid'
+import { addPerfPage } from './perfPage'
 import * as commentStorage from './commentStorage'
 import type { StoredComment } from './commentStorage'
 import * as notificationStorage from './notificationStorage'
@@ -489,6 +490,8 @@ export class EntityStorageManager {
     }
     stressTestPage.get('content').setList(stressUuids)
     this.storages.content.add(stressTestPage)
+
+    addPerfPage(this)
   }
 
   getUser(uuid: string): User | undefined {
