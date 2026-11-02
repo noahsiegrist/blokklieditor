@@ -11,10 +11,8 @@ export default defineConfig({
   test: {
     projects: [
       {
-        // Mounts SFCs (the chart renderer) and renders them as Nuxt does on
-        // the server.
+        // Mounts single-file components (test/unit/chart-footnotes-ssr.test.ts).
         plugins: [vue()],
-        define: { 'import.meta.server': true, 'import.meta.client': false },
         test: {
           name: 'unit',
           include: ['test/unit/*.{test,spec}.ts', 'src/**/*.{test,spec}.ts'],
