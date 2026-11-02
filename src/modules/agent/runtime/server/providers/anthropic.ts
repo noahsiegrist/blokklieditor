@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type {
+  ContentBlockParam,
   MessageParam,
   TextBlockParam,
   Tool,
@@ -20,10 +21,13 @@ import type { MessageStreamParams } from '@anthropic-ai/sdk/resources'
  */
 function convertMessages(messages: GenericMessage[]): MessageParam[] {
   return messages.map((msg) => {
+    // Always block form: a string message turns into a block once it carries
+    // the history breakpoint, and the cached prefix must stay byte-identical
+    // between rounds.
     if (typeof msg.content === 'string') {
       return {
         role: msg.role,
-        content: msg.content,
+        content: [{ type: 'text', text: msg.content }],
       }
     }
 
@@ -57,6 +61,33 @@ function convertMessages(messages: GenericMessage[]): MessageParam[] {
       content,
     }
   }) as MessageParam[]
+}
+
+const MAX_CACHE_BREAKPOINTS = 4
+
+/**
+ * Place a cache_control breakpoint on the last block of the last message, so
+ * that each tool round reads the previous rounds' history from the cache
+ * instead of billing it as fresh input. Empty text blocks cannot carry
+ * cache_control, and the API allows at most four breakpoints per request.
+ */
+function cacheLastMessage(
+  messages: MessageParam[],
+  usedBreakpoints: number,
+): void {
+  const last = messages.at(-1)
+  if (!last || usedBreakpoints >= MAX_CACHE_BREAKPOINTS) {
+    return
+  }
+
+  const target = (last.content as ContentBlockParam[]).findLast(
+    (block) => block.type !== 'text' || block.text,
+  )
+  if (target) {
+    ;(target as { cache_control?: { type: 'ephemeral' } }).cache_control = {
+      type: 'ephemeral',
+    }
+  }
 }
 
 /**
@@ -110,11 +141,18 @@ export class AnthropicProvider implements AIProvider {
 
     const messages = convertMessages(options.messages)
     const tools = convertTools(options.tools)
+    const system = convertSystemPrompt(options.systemPrompt)
+
+    cacheLastMessage(
+      messages,
+      system.filter((block) => block.cache_control).length +
+        tools.filter((tool) => tool.cache_control).length,
+    )
 
     const requestParams: MessageStreamParams = {
       model: config.model,
       max_tokens: options.maxTokens ?? 4096,
-      system: convertSystemPrompt(options.systemPrompt),
+      system,
       messages,
       tools,
       ...(options.toolChoice === 'any'
