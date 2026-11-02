@@ -86,6 +86,7 @@
 import { useRoute, computed } from '#imports'
 import { mapMockField } from '#mock/state'
 import { entityStorageManager } from '#mock/entityStorage'
+import { PERF_PAGE_UUID } from '#mock/perfPage'
 import { ContentPage } from '#mock/state/Entity/Content'
 import Hero from '~/components/Hero/index.vue'
 
@@ -109,6 +110,8 @@ const uuid = computed(() => {
     return '3'
   } else if (route.path.includes('page/4')) {
     return '4'
+  } else if (route.path.includes('page/5')) {
+    return PERF_PAGE_UUID
   }
 
   return '1'

@@ -124,6 +124,7 @@
     "dev:build-ssr": "PLAYGROUND_SSR_BUILD=true nuxt build playground",
     "dev:start": "bunx serve playground/.output/public",
     "dev:start-ssr": "cd playground && node -r dotenv/config ./.output/server/index.mjs",
+    "perf:baseline": "tsx scripts/perf/baseline.ts",
     "dev:prepare": "PLAYGROUND_MODULE_BUILD=true nuxt-module-build build --stub && PLAYGROUND_MODULE_BUILD=true nuxt-module-build prepare && nuxi prepare playground",
     "dev:analyze": "bunx nuxt analyze playground",
     "release": "bun run lint && bun run prepack && changelogen --release",

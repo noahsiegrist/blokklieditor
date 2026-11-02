@@ -15,6 +15,8 @@ import { colorOptions } from './.config/blokkli'
 const playgroundFolder = fileURLToPath(new URL('./', import.meta.url))
 
 const IS_DEV = process.env.NODE_ENV === 'development'
+// `bun run dev:build-ssr`: a production-like build that server-renders pages.
+const IS_SSR_BUILD = process.env.PLAYGROUND_SSR_BUILD === 'true'
 const FORCE_GERMAN = true
 
 const additionalIcons = [
@@ -25,7 +27,7 @@ const additionalIcons = [
 ]
 
 export default defineNuxtConfig({
-  ssr: false,
+  ssr: IS_SSR_BUILD,
   devtools: {
     enabled: true,
   },
@@ -76,7 +78,7 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     build: {
-      minify: false,
+      minify: IS_SSR_BUILD,
     },
     optimizeDeps: {
       exclude: ['artboard-deluxe'],

@@ -278,3 +278,43 @@ Their DE and FR strings are in `translations` in `nuxt.config.ts`.
   from `test/e2e-drupal/content` the first time and whenever it changes. Neither
   DeepL nor the agent's model is called: DeepL is a fake there, and the agent
   replays a script.
+
+## Performance baseline
+
+`bun run perf:baseline --label before` measures what a visitor and an editor pay
+for a playground page, so that a fix can say what it changes in the bigger
+picture ("saves 4 ms of a 28 ms render", "-11 KB of 141 KB gzip").
+
+```bash
+bun run perf:baseline --label before      # builds the SSR playground, measures
+# change something
+bun run perf:baseline --label after
+bun run perf:baseline --compare tmp/perf-baseline/before.json tmp/perf-baseline/after.json
+```
+
+- It builds the playground with `dev:build-ssr` (SSR on, minified, in
+  `playground/.output`), starts it on a free port and drives Chromium with
+  `playwright-core`. `--no-build` reuses the last build, `--only visitor` or
+  `--only editor` skips the other half.
+- Visitor: three pages (`/page/4` without blocks, `/` with 73, `/page/5` with
+  about 210, see `playground/app/mock/perfPage.ts`). Server render time (TTFB on
+  localhost, 30 requests after warm-up), bytes of the HTML and the payload, JS
+  and CSS loaded, hydration, long tasks, heap, all of them with the CPU
+  throttled 4x (`--cpu-throttle`), 7 loads each (`--load-runs`).
+- Editor: `/page/5?blokkliEditing=5`. Time from the navigation until
+  `window.__BLOKKLI__.app` exists and `[data-test="init-overlay"]` is gone (what
+  `waitForEditorReady` in the E2E specs waits for), JS loaded, heap, long tasks.
+- Cells show the median and the range of the samples. The last column says how
+  noisy a metric is, from the range relative to the median: stable (under 0.5%),
+  low (under 10%), medium (under 30%), high. Bytes and counts are stable.
+  Timings, long tasks and layout vary. A delta in `--compare` is flagged
+  `within noise` when the ranges of both runs overlap: repeat with more
+  `--load-runs` or `--ttfb-runs`, on a quiet machine, before you believe it.
+- The machine's own speed drifts with its load, by more than the samples of one
+  run disagree (30% between two runs in a busy hour). Each run times a fixed JS
+  loop before and after (the "Machine" table), and `--compare` warns when the
+  fastest loops of two runs differ by more than 10%. Then the timings are void:
+  run both again back to back.
+- The numbers are only comparable on the same machine with the same load. The
+  playground's mock adapter keeps its data in the client, so the SSR payload is
+  almost empty: it says nothing about a backend's payload.
