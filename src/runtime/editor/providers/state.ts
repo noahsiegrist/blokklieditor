@@ -52,6 +52,24 @@ export type RenderedBlock = {
   parentEntityUuid: string
 }
 
+/**
+ * Whether `value` differs from the one last seen for `key`. The comparison is
+ * against a cached string, so the reactive value already in the store never
+ * has to be serialised again.
+ */
+function hasChanged(
+  cache: Map<string, string | undefined>,
+  key: string,
+  value: unknown,
+): boolean {
+  const serialised = JSON.stringify(value)
+  if (cache.has(key) && cache.get(key) === serialised) {
+    return false
+  }
+  cache.set(key, serialised)
+  return true
+}
+
 function mapPublishOptions(context?: MappedState): PublishOptions {
   return {
     canPublish: !!context?.publishOptions?.canPublish,
@@ -459,6 +477,8 @@ export default async function (
   }
 
   const mutatedOptions = reactive<MutatedOptions>({})
+  const serialisedOptions = new Map<string, string | undefined>()
+  const serialisedFields = new Map<string, string | undefined>()
   const mutatedItemProps = reactive<MutatedItemProps>({})
   const translation = ref<TranslationState>({
     isTranslatable: false,
@@ -492,19 +512,14 @@ export default async function (
     for (let i = 0; i < optionKeys.length; i++) {
       const key = optionKeys[i]!
       const newOptions = options[key]
-      const existing = mutatedOptions[key]
-      if (
-        !existing ||
-        JSON.stringify(existing) !== JSON.stringify(newOptions)
-      ) {
+      if (hasChanged(serialisedOptions, key, newOptions)) {
         mutatedOptions[key] = newOptions
       }
     }
 
     const hostOptions = context?.mutatedState?.mutatedHostOptions ?? {}
-    const existing = mutatedOptions[HOST_OPTION_KEY]
 
-    if (!existing || JSON.stringify(existing) !== JSON.stringify(hostOptions)) {
+    if (hasChanged(serialisedOptions, HOST_OPTION_KEY, hostOptions)) {
       mutatedOptions[HOST_OPTION_KEY] = hostOptions ?? ''
       overrideHostOptions.value = hostOptions
     }
@@ -550,7 +565,7 @@ export default async function (
     const visitedFieldKeys: string[] = []
     const newBlockBundleCount: Record<string, number> = {}
 
-    fieldListItemMap.value = {}
+    const newFieldListItemMap: Record<string, string> = {}
     nestingLevelMap.clear()
 
     // Reset the count cache.
@@ -562,12 +577,7 @@ export default async function (
       const key = getFieldKey(field.entityUuid, field.name)
       visitedFieldKeys.push(key)
 
-      const existing = mutatedFieldsMap[key]
-      if (
-        !existing ||
-        existing.list.length !== field.list.length ||
-        JSON.stringify(existing.list) !== JSON.stringify(field.list)
-      ) {
+      if (hasChanged(serialisedFields, key, field.list)) {
         mutatedFieldsMap[key] = field
       }
 
@@ -578,7 +588,7 @@ export default async function (
           newBlockBundleCount[item.bundle] = 0
         }
         newBlockBundleCount[item.bundle]!++
-        fieldListItemMap.value[item.uuid] = key
+        newFieldListItemMap[item.uuid] = key
         if (!bundleToUuids[item.bundle]) {
           bundleToUuids[item.bundle] = []
         }
@@ -588,6 +598,8 @@ export default async function (
         }
       }
     }
+
+    fieldListItemMap.value = newFieldListItemMap
 
     // Calculate nesting levels for all blocks
     for (let i = 0; i < newMutatedFields.length; i++) {
@@ -606,6 +618,7 @@ export default async function (
       const key = existingKeys[i]!
       if (!visitedFieldKeys.includes(key)) {
         mutatedFieldsMap[key] = undefined
+        serialisedFields.delete(key)
       }
     }
 
