@@ -6,6 +6,22 @@ import type {
   ValidProviderTypes,
 } from '#blokkli-build/generated-types'
 
+// One wrapper per key: a wrapper per block instance would call the loader and
+// hydrate asynchronously once for every instance instead of once per bundle.
+const asyncComponents = new Map<string, Component>()
+
+function asyncComponentFor(
+  key: string,
+  loader: () => Promise<Component | { default: Component }>,
+): Component {
+  let component = asyncComponents.get(key)
+  if (!component) {
+    component = defineAsyncComponent(loader)
+    asyncComponents.set(key, component)
+  }
+  return component
+}
+
 function objectOrImport(
   key: string,
 ): Component | Promise<() => Component> | undefined {
@@ -20,7 +36,7 @@ function objectOrImport(
   }
 
   if (typeof chunkEntry === 'function') {
-    return defineAsyncComponent(() =>
+    return asyncComponentFor(key, () =>
       chunkEntry().then((group) => {
         const item = group[key]
         if (item && 'loadComponent' in item) {
@@ -33,7 +49,7 @@ function objectOrImport(
 
   const item = chunkEntry[key]
   if (item && 'loadComponent' in item) {
-    return defineAsyncComponent(() => item.loadComponent())
+    return asyncComponentFor(key, () => item.loadComponent())
   }
 
   return item
