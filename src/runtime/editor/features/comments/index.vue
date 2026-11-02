@@ -144,6 +144,10 @@ const unresolvedCount = computed(
 const { refresh } = usePolling({
   handler: async () => {
     comments.value = await adapter.loadComments()
+    if (!deepLinkHandled) {
+      deepLinkHandled = true
+      openDeepLink()
+    }
   },
 })
 
@@ -158,8 +162,13 @@ const { refresh } = usePolling({
  */
 const deepLinkUuid = ref<string | null>(null)
 
-onMounted(async () => {
-  await refresh()
+// The first load can fail and is then retried by the poll: the deep link
+// opens after the first load that succeeds.
+let deepLinkHandled = false
+
+onMounted(refresh)
+
+function openDeepLink() {
   const requested = route.query.blokkliComment
   if (typeof requested !== 'string' || !requested) {
     return
@@ -182,7 +191,7 @@ onMounted(async () => {
   }
   eventBus.emit('sidebar:open', 'comments')
   deepLinkUuid.value = target.uuid
-})
+}
 
 const onAddComment = async (body: string, providedUuids?: string[]) => {
   if (!adapter.addComment) {

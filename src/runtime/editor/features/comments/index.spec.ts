@@ -176,6 +176,23 @@ describe('comments feature', () => {
     )
   })
 
+  it('still opens a deep link when the first load failed', async () => {
+    vi.useFakeTimers()
+    harness.query = { blokkliComment: UUID }
+    const loadComments = vi
+      .fn<() => Promise<CommentItem[]>>()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue([comment(UUID)])
+    harness.loadComments = loadComments
+
+    mountFeature()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(harness.emit).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(harness.emit).toHaveBeenCalledWith('sidebar:open', 'comments')
+  })
+
   it('keeps polling every 60 seconds', async () => {
     vi.useFakeTimers()
     const loadComments = vi.fn(async () => [])
