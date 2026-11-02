@@ -95,12 +95,13 @@ function countAllocations() {
   let copiedItems = 0
   let copiedOptions = 0
   for (let i = 0; i < CONSUMERS; i++) {
-    helper.queryBlocks((item) => {
+    const query = helper.queryBlocks((item) => {
       visited++
       if (!originals.has(item)) copiedItems++
       if (!originalOptions.has(item.options as object)) copiedOptions++
       return { include: false, continueChildren: true }
-    }, list).value
+    }, list)
+    void query.value
   }
   return { visited, copiedItems, copiedOptions }
 }
