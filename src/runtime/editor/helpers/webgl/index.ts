@@ -1,4 +1,4 @@
-import type { BufferInfo } from 'twgl.js'
+import type { Arrays, BufferInfo } from 'twgl.js'
 import type { TwglHelpers } from '#blokkli/editor/libraries/twgl'
 import { intersects } from './../geometry'
 import type { Rectangle } from '#blokkli/editor/types/geometry'
@@ -39,12 +39,15 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
   placedRects: PlacedRectangle[] = []
   deferredMode: boolean = false
   pendingRects: PendingRect<T>[] = []
+  private glBuffers: { gl: WebGLRenderingContext; info: BufferInfo } | null =
+    null
 
   constructor(options?: RectangleBufferCollectorOptions) {
     this.deferredMode = options?.deferredMode || false
   }
 
   reset() {
+    this.deleteGlBuffers()
     this.added = new Set()
     // In deferred mode, only preserve rects for position stability
     // placedRects must be rebuilt each frame for accurate collision detection
@@ -428,8 +431,37 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
     // buffer.
   }
 
+  /**
+   * Free the GPU buffers of the last created buffer info. WebGL never
+   * garbage collects them while the context is alive.
+   */
+  private deleteGlBuffers() {
+    if (!this.glBuffers) {
+      return
+    }
+    const { gl, info } = this.glBuffers
+    for (const attrib of Object.values(info.attribs || {})) {
+      gl.deleteBuffer(attrib.buffer)
+    }
+    if (info.indices) {
+      gl.deleteBuffer(info.indices)
+    }
+    this.glBuffers = null
+  }
+
   createBufferInfo(gl: WebGLRenderingContext, twgl: TwglHelpers): BufferInfo {
-    return twgl.createBufferInfoFromArrays(gl, {
+    this.deleteGlBuffers()
+    const info = twgl.createBufferInfoFromArrays(gl, this.bufferArrays(gl))
+    this.glBuffers = { gl, info }
+    return info
+  }
+
+  /**
+   * The vertex attributes uploaded by createBufferInfo(). Subclasses add their
+   * own attributes here, so their buffers are freed like the base ones.
+   */
+  bufferArrays(gl: WebGLRenderingContext): Arrays {
+    return {
       a_position: {
         numComponents: 3,
         data: this.positions,
@@ -461,6 +493,6 @@ export class RectangleBufferCollector<T extends RectangleBufferRect> {
         type: gl.FLOAT,
       },
       indices: this.indices,
-    })
+    }
   }
 }
