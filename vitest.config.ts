@@ -1,4 +1,5 @@
 import path from 'node:path'
+import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 import { defineVitestProject } from '@nuxt/test-utils/config'
 
@@ -10,6 +11,8 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // Lets unit tests mount single-file components.
+        plugins: [vue()],
         test: {
           name: 'unit',
           include: ['test/unit/*.{test,spec}.ts', 'src/**/*.{test,spec}.ts'],
