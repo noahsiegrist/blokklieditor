@@ -56,9 +56,17 @@ function resolveEffectiveLanguage(requested: string): InterfaceLanguage {
   return defaultLanguage
 }
 
-export default async function (
-  requestedLanguage: string,
-): Promise<TextProvider> {
+/**
+ * Start loading the translation chunk without waiting for it.
+ *
+ * Until `ready` resolves the returned function falls back to the default
+ * value (or the key), so a caller that only needs texts on rare paths does not
+ * have to hold back its own work.
+ */
+export function startTextProvider(requestedLanguage: string): {
+  $t: TextProvider
+  ready: Promise<void>
+} {
   const language = resolveEffectiveLanguage(requestedLanguage)
 
   const currentTranslations = shallowRef<TranslationMap>({})
@@ -83,11 +91,20 @@ export default async function (
     })
   }
 
-  await loadTranslations(translationLoaders, language)
-
-  return (key: string, defaultValue?: string, options?: TextOptions) => {
-    const text = currentTranslations.value[key] || defaultValue || key
-    const suffix = options?.more ? HORIZONTAL_ELLIPSIS : ''
-    return text + suffix
+  return {
+    ready: loadTranslations(translationLoaders, language),
+    $t: (key, defaultValue, options) => {
+      const text = currentTranslations.value[key] || defaultValue || key
+      const suffix = options?.more ? HORIZONTAL_ELLIPSIS : ''
+      return text + suffix
+    },
   }
+}
+
+export default async function (
+  requestedLanguage: string,
+): Promise<TextProvider> {
+  const { $t, ready } = startTextProvider(requestedLanguage)
+  await ready
+  return $t
 }

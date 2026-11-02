@@ -133,18 +133,21 @@ watch(selection.uuids, () => {
 })
 
 const comments = ref<CommentItem[]>([])
-comments.value = await adapter.loadComments()
 
 const unresolvedCount = computed(
   () => comments.value.filter((c) => !c.parentUuid && !c.resolved).length,
 )
 
 // Other users can add, edit or resolve comments while the editor is open, so
-// keep the list and the sidebar badge fresh. The initial state is already
-// loaded above, hence no immediate refresh.
-usePolling({
+// keep the list and the sidebar badge fresh. The first load happens on mount
+// instead of during setup, so it does not keep the init overlay up.
+const { refresh } = usePolling({
   handler: async () => {
     comments.value = await adapter.loadComments()
+    if (!deepLinkHandled) {
+      deepLinkHandled = true
+      openDeepLink()
+    }
   },
 })
 
@@ -159,7 +162,13 @@ usePolling({
  */
 const deepLinkUuid = ref<string | null>(null)
 
-onMounted(() => {
+// The first load can fail and is then retried by the poll: the deep link
+// opens after the first load that succeeds.
+let deepLinkHandled = false
+
+onMounted(refresh)
+
+function openDeepLink() {
   const requested = route.query.blokkliComment
   if (typeof requested !== 'string' || !requested) {
     return
@@ -182,7 +191,7 @@ onMounted(() => {
   }
   eventBus.emit('sidebar:open', 'comments')
   deepLinkUuid.value = target.uuid
-})
+}
 
 const onAddComment = async (body: string, providedUuids?: string[]) => {
   if (!adapter.addComment) {
