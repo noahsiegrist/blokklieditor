@@ -6,10 +6,10 @@ import {
   defineComponent,
   h,
   nextTick,
-  ref,
   type App,
 } from 'vue'
 import type { CommentItem } from './types'
+import Comments from './index.vue'
 
 const UUID = 'a4f1b3c2-0000-4000-8000-000000000001'
 
@@ -91,8 +91,6 @@ vi.mock('./AddForm/index.vue', () => ({
   __esModule: true,
   default: { render: () => null },
 }))
-
-import Comments from './index.vue'
 
 function comment(uuid: string): CommentItem {
   return { uuid, resolved: false, parentUuid: null } as unknown as CommentItem

@@ -16,6 +16,8 @@
  */
 import { bench, describe, vi } from 'vitest'
 import { Suspense, createApp, defineComponent, h, nextTick } from 'vue'
+import * as texts from '../../src/runtime/editor/providers/texts'
+import Comments from '../../src/runtime/editor/features/comments/index.vue'
 
 const DELAY = 100
 
@@ -104,9 +106,6 @@ vi.mock('../../src/runtime/editor/features/comments/AddForm/index.vue', () => ({
   __esModule: true,
   default: { render: () => null },
 }))
-
-import * as texts from '../../src/runtime/editor/providers/texts'
-import Comments from '../../src/runtime/editor/features/comments/index.vue'
 
 const loadState = () => request('loadState', {})
 

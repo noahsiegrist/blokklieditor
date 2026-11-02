@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import * as texts from './texts'
 
 const { loaders } = vi.hoisted(() => ({
   loaders: { en: null as null | (() => Promise<Record<string, string>>) },
@@ -16,8 +17,6 @@ vi.mock('#blokkli-build/editor-config', () => ({
   defaultLanguage: 'en',
   forceDefaultLanguage: false,
 }))
-
-import * as texts from './texts'
 
 function deferred<T>() {
   let resolve!: (value: T) => void
